@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Remote terminal</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@4.11.0/css/xterm.css" />
+    <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm@4.11.0/lib/xterm.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-attach@0.6.0/lib/xterm-addon-attach.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.5.0/lib/xterm-addon-fit.min.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <div v-if="error">{{error}}</div>
+      <div v-if="!terminal">
+        <label for="target">Target:</label>
+        <input id="target" type="text" v-model="target">
+        <button @click="connect">Connect</button>
+      </div>
+      <div v-else>
+        <button @click="disconnect">Disconnect</button>
+      </div>
+      <div ref="terminal" class="terminal"></div>
+    </div>
+    <script>
+      new Vue({
+        el: '#app',
+        data() {
+          return {
+            error: null,
+            terminal: null,
+            ws: null,
+            target: ''
+          };
+        },
+        methods: {
+          connect() {
+            this.error = null;
+
+            if(!this.target) {
+              this.error = 'Missing target';
+              return;
+            }
+            
+            this.ws = new WebSocket(`ws://localhost:8888?target=${this.target}`);
+            const addonAttach = new AttachAddon.AttachAddon(ws);
+
+            const addonFit = new FitAddon.FitAddon();
+
+            this.terminal = new Terminal({cols: 120, rows: 50});
+            this.terminal.loadAddon(addonAttach);
+            this.terminal.loadAddon(addonFit);
+            this.terminal.open(this.$refs.terminal);
+            addonFit.fit();
+          },
+          disconnect() {
+            this.terminal.dispose();
+            this.terminal = null;
+            this.ws.close();
+            this.ws = null;
+          }
+        }
+      });
+    </script>
+  </body>
+</html>
